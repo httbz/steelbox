@@ -8,6 +8,17 @@ void Vault::add_entry(const PasswordEntry& entry) {
     entries_.push_back(entry);
 }
 
+bool Vault::update_entry(const PasswordEntry& updated_entry) {
+    PasswordEntry* existing_entry = find_entry(updated_entry.id);
+
+    if (existing_entry == nullptr) {
+        return false;
+    }
+
+    *existing_entry = updated_entry;
+    return true;
+}
+
 bool Vault::remove_entry(const std::string& id) {
     const auto entry_iterator = std::find_if(
         entries_.begin(),

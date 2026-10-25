@@ -10,6 +10,7 @@ namespace steelbox {
     class Vault {
         public:
             void add_entry(const PasswordEntry& entry);
+            bool update_entry(const PasswordEntry& updated_entry);
             bool remove_entry(const std::string& id);
             PasswordEntry* find_entry(const std::string& id);
 

@@ -31,6 +31,29 @@ int main() {
                   << "\n";
     }
 
+    steelbox::PasswordEntry updated_github_entry{
+        .id = "1",
+        .title = "GitHub Updated",
+        .username = "bernardo.updated",
+        .password = "newsecurepassword456",
+        .url = "https://github.com",
+        .notes = "Updated GitHub account",
+        .tags = {"work", "code", "updated"}
+    };
+
+    if (vault.update_entry(updated_github_entry)) {
+        std::cout << "Entrada atualizada com sucesso. \n";
+    } else {
+        std::cout << "Falha ao atualizar a entrada. \n";
+    }
+
+    if (steelbox::PasswordEntry* entry = vault.find_entry("1")) {
+        std::cout << "Dados apos atualizacao: \n";
+        std::cout << "Título: " << entry->title << "\n";
+        std::cout << "Usuário: " << entry->username << "\n";
+        std::cout << "URL: " << entry->url << "\n";
+    }
+
     if (vault.remove_entry("1")) {
         std::cout << "Entrada removida. \n";
     }
