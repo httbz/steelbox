@@ -1,0 +1,3 @@
+C:/Users/Bernardo/steelbox/build/CMakeFiles/steelbox.dir
+C:/Users/Bernardo/steelbox/build/CMakeFiles/edit_cache.dir
+C:/Users/Bernardo/steelbox/build/CMakeFiles/rebuild_cache.dir

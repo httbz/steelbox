@@ -1,0 +1,5 @@
+# ninja log v7
+22	896	8143304616743614	CMakeFiles/steelbox.dir/src/main.cpp.obj	e1bc550cbc0f7bea
+897	1251	8143304625484840	steelbox.exe	c2d6ef0b0ac07296
+29	1164	8146608294493153	CMakeFiles/steelbox.dir/src/models/vault.cpp.obj	1b742a729389aa60
+22	1408	8146608294416476	CMakeFiles/steelbox.dir/src/main.cpp.obj	57f9aade18864066
