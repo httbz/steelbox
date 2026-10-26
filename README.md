@@ -17,14 +17,33 @@ Guardar credenciais (usuário, senha, URL, notas, tags) em um cofre cifrado que 
 
 ## Roadmap
 
+**Núcleo**
+
 - [x] Modelo de dados (`PasswordEntry`) e cofre em memória com CRUD (`Vault`)
-- [ ] Criptografia do cofre (derivação de chave a partir da senha mestra + cifragem autenticada)
-- [ ] Formato de arquivo versionado e gravação atômica em disco
+- [ ] Organização do repositório: `.gitignore`, remoção de artefatos de build e separação em biblioteca (`steelbox_core`) e executáveis
+- [ ] Build portátil: linkagem estática (executável único, sem DLLs), cofre procurado ao lado do executável e nada gravado fora da pasta do programa
+- [ ] Criptografia: Argon2id para derivar a chave da senha mestra + cifragem autenticada (libsodium), com os parâmetros guardados no cabeçalho do arquivo
+- [ ] Formato de arquivo versionado, gravação atômica em disco e backup do cofre anterior
+- [ ] Busca no cofre, incluindo por domínio/URL normalizada (necessária para a extensão)
 - [ ] Gerador de senhas
-- [ ] Testes automatizados e integração contínua
-- [ ] Interface de linha de comando (CLI)
+- [ ] Testes automatizados e integração contínua (Windows, Linux e macOS)
+
+**Interfaces**
+
+- [ ] Interface de linha de comando (CLI): criar, listar, buscar, editar e remover entradas
 - [ ] Interface de terminal interativa (TUI)
-- [ ] Extensão para navegadores (Chrome e Firefox) via Native Messaging
+
+**Navegadores (Chrome e Firefox)**
+
+- [ ] Host nativo em C++ (Native Messaging) **somente leitura**, com comandos mínimos: `status`, `unlock`, `lock`, `search` e `get_credentials`. Não existe comando de escrita.
+- [ ] Extensão companheira (Manifest V3) para preencher usuário e senha em páginas de login. Ela usa o host nativo e não guarda dados por conta própria.
+  - Casa a credencial pelo domínio exato e apenas em HTTPS
+  - Preenche somente por ação do usuário e nunca em iframes de terceiros
+  - Criar, editar e excluir entradas continua sendo feito pela CLI e pela TUI
+
+**Distribuição**
+
+- [ ] Binários para Windows, Linux e macOS, para uso a partir de um pendrive (a extensão exige registrar o host em cada computador)
 
 ## Estrutura do projeto
 
