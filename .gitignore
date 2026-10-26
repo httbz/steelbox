@@ -1,0 +1,34 @@
+# CMake and build directories
+build/
+build-*/
+cmake-build-*/
+
+# C/C++ compiler and linker artifacts
+*.obj
+*.o
+*.exe
+*.dll
+*.lib
+*.exp
+*.ilk
+*.pdb
+*.idb
+*.res
+*.manifest
+
+# CMake and Ninja generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build.ninja
+.ninja_deps
+.ninja_log
+
+# Visual Studio and IDE files
+.vs/
+*.suo
+*.user
+
+# Temporary files
+*.tmp
+*.temp
