@@ -11,6 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(steelbox
     src/main.cpp
+    src/models/password_entry.cpp
     src/models/vault.cpp
 )
 
