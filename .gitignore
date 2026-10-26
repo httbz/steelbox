@@ -1,4 +1,56 @@
-# CMake and build directories
+# Diret�rios de build (CMake / Ninja / Visual Studio)
+build/
+build-*/
+out/
+cmake-build-*/ 
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+
+# Bin�rios e artefatos de compila��o
+*.exe
+*.obj
+*.o
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.pdb
+*.ilk
+*.exp
+*.res
+*.manifest
+
+# Depura��o e perfilamento
+*.log
+*.dmp
+
+# Visual Studio / VS Code (configura��es locais)
+.vs/
+.vscode/
+*.user
+*.suo
+
+# CLion / outros editores
+.idea/
+*.swp
+*~
+
+# Gerenciadores de depend�ncias
+vcpkg_installed/
+.cache/
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# Cofres e dados sens�veis: nunca versionar
+*.vault
+*.sbox
+*.key
+.env# CMake and build directories
 build/
 build-*/
 cmake-build-*/
