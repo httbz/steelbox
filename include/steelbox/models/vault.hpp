@@ -36,6 +36,7 @@ public:
     VaultResult update_entry(const PasswordEntry& updated_entry);
     VaultResult remove_entry(const std::string& id);
     PasswordEntry* find_entry(const std::string& id);
+    const PasswordEntry* find_entry(const std::string& id) const;
 
     void unlock();
     void lock();

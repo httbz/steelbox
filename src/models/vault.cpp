@@ -1,4 +1,5 @@
 #include <steelbox/models/vault.hpp>
+#include <steelbox/models/url.hpp>
 
 #include <algorithm>
 #include <array>
@@ -73,6 +74,7 @@ VaultResult Vault::add_entry(PasswordEntry entry) {
     }
 
     entry.id = generate_uuid();
+    entry.normalized_domain = normalize_url(entry.url).domain;
     entry.created_at = current_utc_timestamp();
     entry.updated_at = entry.created_at;
     const std::string entry_id = entry.id;
@@ -110,7 +112,10 @@ VaultResult Vault::update_entry(const PasswordEntry& updated_entry) {
     }
 
     const std::string created_at = existing_entry->created_at;
-    *existing_entry = updated_entry;
+    PasswordEntry normalized_entry = updated_entry;
+    normalized_entry.normalized_domain =
+        normalize_url(normalized_entry.url).domain;
+    *existing_entry = normalized_entry;
     existing_entry->created_at = created_at;
     existing_entry->updated_at = current_utc_timestamp();
     return {};
@@ -149,6 +154,26 @@ PasswordEntry* Vault::find_entry(const std::string& id) {
     }
 
     const auto entry_iterator = std::find_if (
+        entries_.begin(),
+        entries_.end(),
+        [&id](const PasswordEntry& entry) {
+            return entry.id == id;
+        }
+    );
+
+    if (entry_iterator == entries_.end()) {
+        return nullptr;
+    }
+
+    return &*entry_iterator;
+}
+
+const PasswordEntry* Vault::find_entry(const std::string& id) const {
+    if (state_ == VaultState::Locked) {
+        return nullptr;
+    }
+
+    const auto entry_iterator = std::find_if(
         entries_.begin(),
         entries_.end(),
         [&id](const PasswordEntry& entry) {

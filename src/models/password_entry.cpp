@@ -1,4 +1,5 @@
 #include <steelbox/models/password_entry.hpp>
+#include <steelbox/models/url.hpp>
 
 namespace steelbox {
 
@@ -7,6 +8,14 @@ ValidationResult validate_entry(const PasswordEntry& entry) {
         return {
             EntryError::MissingUrl,
             "A URL e obrigatoria."
+        };
+    }
+
+    const UrlResult url_result = normalize_url(entry.url);
+    if (!url_result.valid()) {
+        return {
+            EntryError::InvalidUrl,
+            url_result.message
         };
     }
 

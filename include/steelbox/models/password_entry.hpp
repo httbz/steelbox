@@ -8,6 +8,7 @@ namespace steelbox {
 enum class EntryError {
     None,
     MissingUrl,
+    InvalidUrl,
     MissingUsername,
     MissingPassword
 };
@@ -27,6 +28,7 @@ struct PasswordEntry {
     std::string username;
     std::string password;
     std::string url;
+    std::string normalized_domain;
     std::string notes;
     std::vector<std::string> tags;
     std::string created_at;
