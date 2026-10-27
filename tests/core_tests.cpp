@@ -27,7 +27,7 @@ steelbox::PasswordEntry valid_entry() {
     return {.id = "caller-id-must-be-ignored",
             .title = "GitHub",
             .username = "test-user",
-            .password = "test-password",
+            .password = steelbox::SecureString("test-password"),
             .url = "https://github.com",
             .notes = "Test entry",
             .tags = {"test"},
