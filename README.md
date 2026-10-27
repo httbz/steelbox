@@ -56,11 +56,37 @@ CMakeLists.txt             Configuração de build
 
 ## Como compilar
 
-Requisitos: um compilador com suporte a C++20 (MSVC, GCC ou Clang) e CMake 3.25 ou superior.
+Requisitos: um compilador com suporte a C++20 (MSVC, GCC ou Clang), CMake 3.25 ou superior e libsodium. No Windows, instale libsodium pelo vcpkg; em Linux/macOS, disponibilize-a via pkg-config.
 
 ```sh
 cmake -S . -B build
 cmake --build build
 ```
 
-O executável `steelbox` será gerado dentro de `build/`. Por enquanto ele roda apenas uma demonstração das operações do cofre em memória.
+O executável `steelbox` será gerado dentro de `build/`.
+No Windows, a compilação usa linkagem dinâmica e copia `libsodium.dll` para a mesma pasta de `steelbox.exe`.
+
+## Testes, sanitizers e fuzzing
+
+Execute os testes do núcleo com:
+
+```sh
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+Em Linux, os sanitizers podem ser habilitados com Clang:
+
+```sh
+CC=clang CXX=clang++ cmake -S . -B build-sanitizers -DSTEELBOX_ENABLE_SANITIZERS=ON
+cmake --build build-sanitizers
+ctest --test-dir build-sanitizers --output-on-failure
+```
+
+O fuzzer do parser requer Clang com libFuzzer:
+
+```sh
+CC=clang CXX=clang++ cmake -S . -B build-fuzz -DSTEELBOX_BUILD_FUZZER=ON
+cmake --build build-fuzz --target steelbox_parser_fuzz
+./build-fuzz/steelbox_parser_fuzz -runs=1000 -max_len=1048576
+```

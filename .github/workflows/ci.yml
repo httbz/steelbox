@@ -1,0 +1,91 @@
+name: C++ CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Core tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libsodium (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: '& "$env:VCPKG_INSTALLATION_ROOT\vcpkg.exe" install libsodium:x64-windows'
+
+      - name: Install libsodium (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsodium-dev pkg-config
+
+      - name: Install libsodium (macOS)
+        if: runner.os == 'macOS'
+        run: brew install libsodium pkg-config
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: >-
+          cmake -S . -B build
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          -DVCPKG_TARGET_TRIPLET=x64-windows
+
+      - name: Configure (Unix)
+        if: runner.os != 'Windows'
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build
+        run: cmake --build build --config Debug --parallel
+
+      - name: Test
+        run: ctest --test-dir build --build-config Debug --output-on-failure
+
+  sanitizers:
+    name: AddressSanitizer and UBSan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsodium-dev pkg-config
+      - name: Configure
+        run: >-
+          CC=clang CXX=clang++ cmake -S . -B build-sanitizers
+          -DCMAKE_BUILD_TYPE=Debug
+          -DSTEELBOX_ENABLE_SANITIZERS=ON
+      - name: Build
+        run: cmake --build build-sanitizers --parallel
+      - name: Test
+        run: ctest --test-dir build-sanitizers --output-on-failure
+
+  parser-fuzz:
+    name: Parser libFuzzer smoke run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsodium-dev pkg-config
+      - name: Configure
+        run: >-
+          CC=clang CXX=clang++ cmake -S . -B build-fuzz
+          -DCMAKE_BUILD_TYPE=Debug
+          -DSTEELBOX_BUILD_FUZZER=ON
+      - name: Build fuzzer
+        run: cmake --build build-fuzz --target steelbox_parser_fuzz --parallel
+      - name: Fuzz parser
+        run: ./build-fuzz/steelbox_parser_fuzz -runs=1000 -max_len=1048576

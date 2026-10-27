@@ -3,6 +3,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <chrono>
 #include <regex>
 #include <string>
 #include <utility>
@@ -14,6 +15,32 @@ namespace {
 
 using json = nlohmann::json;
 constexpr int current_format_version = 2;
+
+bool is_valid_utc_timestamp(const std::string& value) {
+    static const std::regex timestamp_pattern(
+        R"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)"
+    );
+    if (!std::regex_match(value, timestamp_pattern)) {
+        return false;
+    }
+
+    const int year_value = std::stoi(value.substr(0, 4));
+    const unsigned int month_value =
+        static_cast<unsigned int>(std::stoi(value.substr(5, 2)));
+    const unsigned int day_value =
+        static_cast<unsigned int>(std::stoi(value.substr(8, 2)));
+    const int hour_value = std::stoi(value.substr(11, 2));
+    const int minute_value = std::stoi(value.substr(14, 2));
+    const int second_value = std::stoi(value.substr(17, 2));
+    const std::chrono::year_month_day date{
+        std::chrono::year{year_value},
+        std::chrono::month{month_value},
+        std::chrono::day{day_value}
+    };
+
+    return year_value >= 1 && date.ok() && hour_value <= 23 &&
+        minute_value <= 59 && second_value <= 59;
+}
 
 void to_json(json& value, const PasswordEntry& entry) {
     value = json{
@@ -53,15 +80,12 @@ bool from_json(const json& value, PasswordEntry& entry, std::string& error) {
         static const std::regex uuid_pattern(
             R"([0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})"
         );
-        static const std::regex timestamp_pattern(
-            R"(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)"
-        );
         if (!std::regex_match(entry.id, uuid_pattern)) {
             error = "ID deve ser um UUID v4.";
             return false;
         }
-        if (!std::regex_match(entry.created_at, timestamp_pattern) ||
-            !std::regex_match(entry.updated_at, timestamp_pattern)) {
+        if (!is_valid_utc_timestamp(entry.created_at) ||
+            !is_valid_utc_timestamp(entry.updated_at)) {
             error = "Datas devem estar em UTC ISO 8601.";
             return false;
         }
