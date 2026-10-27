@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 
 namespace steelbox {
 
@@ -12,12 +13,14 @@ struct CryptoResult {
 
 CryptoResult encrypt_payload(
     const std::string& payload,
-    const std::string& master_password
+    const std::string& master_password,
+    std::string_view associated_data = {}
 );
 
 CryptoResult decrypt_payload(
     const std::string& encrypted_data,
-    const std::string& master_password
+    const std::string& master_password,
+    std::string_view associated_data = {}
 );
 
 }

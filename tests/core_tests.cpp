@@ -2,6 +2,7 @@
 #include <steelbox/models/url.hpp>
 #include <steelbox/models/vault.hpp>
 #include <steelbox/crypto/vault_crypto.hpp>
+#include <steelbox/crypto/password_generator.hpp>
 #include <steelbox/storage/vault_serializer.hpp>
 #include <steelbox/storage/vault_storage.hpp>
 
@@ -126,6 +127,73 @@ void test_locked_vault_rejects_operations() {
     const auto result = vault.add_entry(entry);
     expect(result.error == steelbox::VaultError::Locked,
            "Adicionar em cofre bloqueado deveria retornar Locked.");
+}
+
+void test_authenticated_unlock_and_secure_lock() {
+    steelbox::Vault vault;
+    expect(vault.unlock("session-password").succeeded(),
+           "A primeira autenticacao deveria iniciar a sessao.");
+    expect(vault.state() == steelbox::VaultState::Unlocked,
+           "A sessao deveria estar desbloqueada.");
+    vault.lock();
+    expect(vault.state() == steelbox::VaultState::Locked,
+           "O cofre deveria voltar a ficar bloqueado.");
+    expect(!vault.unlock("wrong-password").succeeded(),
+           "Uma senha diferente deveria ser rejeitada.");
+    expect(vault.unlock("session-password").succeeded(),
+           "A senha original deveria desbloquear o cofre.");
+}
+
+void test_search_and_password_generation() {
+    steelbox::Vault vault;
+    vault.unlock();
+    auto entry = valid_entry();
+    entry.tags = {"Work", "Code"};
+    expect(vault.add_entry(entry).succeeded(),
+           "A entrada de busca deveria ser adicionada.");
+
+    expect(vault.search_entries("github").size() == 1,
+           "A busca deveria encontrar o dominio.");
+    expect(vault.search_entries("work").size() == 1,
+           "A busca deveria ignorar maiusculas em tags.");
+    expect(vault.search_entries("missing").empty(),
+           "A busca deveria retornar vazio para termos ausentes.");
+
+    const auto generated = steelbox::generate_password({
+        .length = 32,
+        .lowercase = true,
+        .uppercase = true,
+        .digits = true,
+        .symbols = true
+    });
+    expect(generated.succeeded && generated.password.size() == 32,
+           "O gerador deveria produzir o tamanho solicitado.");
+    const auto only_digits = steelbox::generate_password({
+        .length = 16,
+        .lowercase = false,
+        .uppercase = false,
+        .digits = true,
+        .symbols = false
+    });
+    expect(only_digits.succeeded &&
+               only_digits.password.find_first_not_of("0123456789") ==
+                   std::string::npos,
+           "O gerador deveria respeitar os conjuntos selecionados.");
+}
+
+void test_hardened_deserialization() {
+    steelbox::Vault vault;
+    vault.unlock();
+    expect(steelbox::deserialize_vault(
+               R"({"format_version":1,"entries":[{"id":"bad","title":"","username":"u","password":"p","url":"https://example.com","normalized_domain":"example.com","notes":"","tags":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]})",
+               vault
+           ).succeeded == false,
+           "UUID invalido deveria ser rejeitado.");
+    expect(steelbox::deserialize_vault(
+               R"({"format_version":1,"entries":[],"extra":true})",
+               vault
+           ).succeeded,
+           "Campos futuros deveriam ser ignorados para compatibilidade.");
 }
 
 void test_add_generates_uuid_and_timestamps() {
@@ -368,6 +436,21 @@ void test_encrypted_storage() {
            ).succeeded,
            "Carregamento com senha errada deveria falhar.");
 
+    {
+        std::fstream file(vault_path, std::ios::binary | std::ios::in | std::ios::out);
+        expect(file.good(), "O arquivo deveria estar disponivel para corrupcao.");
+        file.seekp(0);
+        const char invalid_magic = 'X';
+        file.write(&invalid_magic, 1);
+    }
+    steelbox::Vault corrupted;
+    expect(!steelbox::load_vault(
+               corrupted,
+               vault_path,
+               "master-password"
+           ).succeeded,
+           "Magic corrompido deveria ser rejeitado.");
+
     std::filesystem::remove_all(directory);
 }
 
@@ -383,6 +466,7 @@ int main() {
         run_test("entry validation", test_entry_validation);
         run_test("URL normalization", test_url_normalization);
         run_test("locked vault", test_locked_vault_rejects_operations);
+        run_test("authenticated unlock", test_authenticated_unlock_and_secure_lock);
         run_test("UUID and timestamps", test_add_generates_uuid_and_timestamps);
         run_test("entry update", test_update_preserves_creation_date);
         run_test("missing entry errors", test_missing_entry_errors);
@@ -398,6 +482,8 @@ int main() {
             test_encryption_round_trip_and_authentication
         );
         run_test("encrypted storage", test_encrypted_storage);
+        run_test("hardened deserialization", test_hardened_deserialization);
+        run_test("search and password generation", test_search_and_password_generation);
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "[FAIL] " << error.what() << "\n";

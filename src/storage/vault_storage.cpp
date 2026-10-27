@@ -18,6 +18,7 @@ namespace {
 
 constexpr std::array<char, 4> magic = {'S', 'T', 'B', 'X'};
 constexpr std::uint32_t format_version = 2;
+constexpr std::uint64_t maximum_payload_size = 64 * 1024 * 1024;
 
 template <typename Integer>
 void write_integer(std::ostream& output, Integer value) {
@@ -85,6 +86,15 @@ StorageResult replace_file(
     return {true, ""};
 }
 
+std::string envelope_associated_data() {
+    std::string data(magic.data(), magic.size());
+    data.append(
+        reinterpret_cast<const char*>(&format_version),
+        sizeof(format_version)
+    );
+    return data;
+}
+
 }
 
 StorageResult save_vault(
@@ -98,7 +108,11 @@ StorageResult save_vault(
     }
 
     const CryptoResult encrypted =
-        encrypt_payload(serialized.data, master_password);
+        encrypt_payload(
+            serialized.data,
+            master_password,
+            envelope_associated_data()
+        );
     if (!encrypted.succeeded) {
         return {false, encrypted.message};
     }
@@ -157,7 +171,7 @@ StorageResult load_vault(
     if (!read_integer(input, version) ||
         !read_integer(input, payload_size) ||
         version != format_version ||
-        payload_size > 64 * 1024 * 1024) {
+    payload_size > maximum_payload_size) {
         return {false, "Cabecalho do cofre invalido."};
     }
 
@@ -172,9 +186,16 @@ StorageResult load_vault(
     if (!input) {
         return {false, "Payload do cofre incompleto."};
     }
+    if (input.peek() != std::char_traits<char>::eof()) {
+        return {false, "O arquivo do cofre possui dados extras."};
+    }
 
     const CryptoResult decrypted =
-        decrypt_payload(encrypted_payload, master_password);
+        decrypt_payload(
+            encrypted_payload,
+            master_password,
+            envelope_associated_data()
+        );
     if (!decrypted.succeeded) {
         return {false, decrypted.message};
     }
@@ -183,6 +204,10 @@ StorageResult load_vault(
         deserialize_vault(decrypted.data, vault);
     if (!deserialized.succeeded) {
         return {false, deserialized.message};
+    }
+    const VaultResult unlocked = vault.unlock(master_password);
+    if (!unlocked.succeeded()) {
+        return {false, unlocked.message};
     }
 
     return {true, ""};

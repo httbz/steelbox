@@ -23,6 +23,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_executable(steelbox
     src/main.cpp
     src/crypto/vault_crypto.cpp
+    src/crypto/password_generator.cpp
     src/models/password_entry.cpp
     src/storage/vault_serializer.cpp
     src/storage/vault_storage.cpp
@@ -44,6 +45,7 @@ target_link_libraries(
 add_executable(steelbox_tests
     tests/core_tests.cpp
     src/crypto/vault_crypto.cpp
+    src/crypto/password_generator.cpp
     src/models/password_entry.cpp
     src/storage/vault_serializer.cpp
     src/storage/vault_storage.cpp

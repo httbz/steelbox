@@ -41,7 +41,8 @@ bool derive_key(
 
 CryptoResult encrypt_payload(
     const std::string& payload,
-    const std::string& master_password
+    const std::string& master_password,
+    std::string_view associated_data
 ) {
     if (!initialize_sodium()) {
         return {false, "", "Nao foi possivel inicializar a libsodium."};
@@ -74,8 +75,8 @@ CryptoResult encrypt_payload(
             &ciphertext_size,
             reinterpret_cast<const unsigned char*>(payload.data()),
             payload.size(),
-            nullptr,
-            0,
+            reinterpret_cast<const unsigned char*>(associated_data.data()),
+            associated_data.size(),
             nullptr,
             nonce.data(),
             key.data()
@@ -96,7 +97,8 @@ CryptoResult encrypt_payload(
 
 CryptoResult decrypt_payload(
     const std::string& encrypted_data,
-    const std::string& master_password
+    const std::string& master_password,
+    std::string_view associated_data
 ) {
     if (!initialize_sodium()) {
         return {false, "", "Nao foi possivel inicializar a libsodium."};
@@ -135,8 +137,8 @@ CryptoResult decrypt_payload(
             nullptr,
             ciphertext,
             ciphertext_size,
-            nullptr,
-            0,
+            reinterpret_cast<const unsigned char*>(associated_data.data()),
+            associated_data.size(),
             nonce,
             key.data()
         );

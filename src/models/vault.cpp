@@ -1,13 +1,17 @@
 #include <steelbox/models/vault.hpp>
 #include <steelbox/models/url.hpp>
 
+#include <sodium.h>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <cctype>
 #include <random>
 #include <sstream>
+#include <string_view>
 #include <utility>
 
 namespace steelbox {
@@ -53,6 +57,31 @@ std::string current_utc_timestamp() {
     std::ostringstream result;
     result << std::put_time(&utc_time, "%Y-%m-%dT%H:%M:%SZ");
     return result.str();
+}
+
+bool create_session_verifier(
+    std::string_view password,
+    SecureBuffer& verifier
+) {
+    if (sodium_init() < 0) {
+        return false;
+    }
+
+    SecureBuffer candidate(crypto_generichash_BYTES);
+    if (!candidate.valid() ||
+        crypto_generichash(
+            candidate.data(),
+            candidate.size(),
+            reinterpret_cast<const unsigned char*>(password.data()),
+            password.size(),
+            nullptr,
+            0
+        ) != 0) {
+        return false;
+    }
+
+    verifier = std::move(candidate);
+    return true;
 }
 
 }
@@ -212,8 +241,72 @@ const PasswordEntry* Vault::find_entry(const std::string& id) const {
     return &*entry_iterator;
 }
 
+std::vector<const PasswordEntry*> Vault::search_entries(
+    std::string_view query
+) const {
+    std::vector<const PasswordEntry*> results;
+    if (state_ == VaultState::Locked) {
+        return results;
+    }
+
+    std::string normalized_query(query);
+    std::transform(
+        normalized_query.begin(),
+        normalized_query.end(),
+        normalized_query.begin(),
+        [](unsigned char character) {
+            return static_cast<char>(std::tolower(character));
+        }
+    );
+
+    for (const auto& entry : entries_) {
+        std::string searchable = entry.title + "\n" +
+            entry.username + "\n" + entry.url + "\n" +
+            entry.normalized_domain;
+        for (const auto& tag : entry.tags) {
+            searchable += "\n" + tag;
+        }
+        std::transform(
+            searchable.begin(),
+            searchable.end(),
+            searchable.begin(),
+            [](unsigned char character) {
+                return static_cast<char>(std::tolower(character));
+            }
+        );
+        if (searchable.find(normalized_query) != std::string::npos) {
+            results.push_back(&entry);
+        }
+    }
+    return results;
+}
+
 void Vault::unlock() {
     state_ = VaultState::Unlocked;
+}
+
+VaultResult Vault::unlock(std::string_view master_password) {
+    if (master_password.empty()) {
+        return {VaultError::InvalidEntry, "A senha mestra nao pode ser vazia.", ""};
+    }
+
+    SecureBuffer candidate;
+    if (!create_session_verifier(master_password, candidate)) {
+        return {VaultError::InvalidEntry, "Nao foi possivel preparar a sessao segura.", ""};
+    }
+
+    if (session_verifier_.size() == candidate.size() &&
+        sodium_memcmp(
+            session_verifier_.data(),
+            candidate.data(),
+            candidate.size()
+        ) != 0) {
+        return {VaultError::Locked, "Senha mestra incorreta.", ""};
+    }
+
+    session_verifier_ = std::move(candidate);
+    state_ = VaultState::Unlocked;
+    return {};
 }
 
 void Vault::lock() {
