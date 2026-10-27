@@ -50,8 +50,22 @@ target_link_libraries(
         ${STEELBOX_SODIUM_TARGET}
 )
 
-add_executable(steelbox src/main.cpp)
-target_link_libraries(steelbox PRIVATE steelbox_core)
+add_library(steelbox_cli_support STATIC
+    src/cli/init_command.cpp
+)
+target_include_directories(steelbox_cli_support
+    PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+target_link_libraries(steelbox_cli_support PUBLIC steelbox_core)
+
+add_executable(
+    steelbox
+    src/main.cpp
+    src/cli/secure_prompt.cpp
+)
+target_link_libraries(steelbox PRIVATE steelbox_cli_support)
+target_compile_definitions(steelbox PRIVATE STEELBOX_VERSION="${PROJECT_VERSION}")
 
 add_executable(steelbox_tests
     tests/core_tests.cpp
@@ -64,7 +78,7 @@ target_include_directories(steelbox_tests
 target_link_libraries(
     steelbox_tests
     PRIVATE
-        steelbox_core
+    steelbox_cli_support
 )
 
 add_test(NAME steelbox_core_tests COMMAND steelbox_tests)

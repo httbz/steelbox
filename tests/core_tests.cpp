@@ -3,6 +3,7 @@
 #include <steelbox/models/password_entry.hpp>
 #include <steelbox/models/url.hpp>
 #include <steelbox/models/vault.hpp>
+#include <steelbox/cli/init_command.hpp>
 #include <steelbox/storage/vault_serializer.hpp>
 #include <steelbox/storage/vault_storage.hpp>
 
@@ -447,6 +448,58 @@ void test_storage_failure_paths() {
     std::filesystem::remove_all(directory);
 }
 
+void test_cli_init_creates_vault_without_overwrite() {
+       const auto directory =
+              std::filesystem::temp_directory_path() / "steelbox-cli-init-tests";
+       std::filesystem::remove_all(directory);
+       std::filesystem::create_directories(directory);
+       const auto vault_path = directory / "steelbox.vault";
+       const std::string master_password = "test-master-password";
+
+       const auto missing_parent_result = steelbox::cli::initialize_vault(
+              directory / "missing" / "steelbox.vault",
+              master_password
+       );
+       expect(!missing_parent_result.succeeded,
+                 "Init deveria falhar antes de criar um diretorio ausente.");
+
+       const auto initialized =
+              steelbox::cli::initialize_vault(vault_path, master_password);
+       expect(initialized.succeeded,
+                 "O comando init deveria criar o cofre vazio.");
+       expect(std::filesystem::exists(vault_path),
+                 "O comando init deveria criar o arquivo no caminho solicitado.");
+
+       steelbox::Vault loaded;
+       expect(steelbox::load_vault(loaded, vault_path, master_password).succeeded,
+                 "O cofre inicializado deveria abrir com a senha mestra definida.");
+       expect(loaded.entries() != nullptr && loaded.entries()->empty(),
+                 "O cofre inicializado deveria estar vazio.");
+
+       std::ifstream original_file(vault_path, std::ios::binary);
+       const std::string original_data{
+              std::istreambuf_iterator<char>(original_file),
+              std::istreambuf_iterator<char>()
+       };
+       original_file.close();
+
+       const auto repeated_init =
+              steelbox::cli::initialize_vault(vault_path, "another-password");
+       expect(!repeated_init.succeeded,
+                 "Repetir init nao deveria sobrescrever um cofre existente.");
+
+       std::ifstream unchanged_file(vault_path, std::ios::binary);
+       const std::string unchanged_data{
+              std::istreambuf_iterator<char>(unchanged_file),
+              std::istreambuf_iterator<char>()
+       };
+       unchanged_file.close();
+       expect(unchanged_data == original_data,
+                 "Um init repetido deveria preservar os bytes do cofre existente.");
+
+       std::filesystem::remove_all(directory);
+}
+
 void test_encryption_round_trip_and_authentication() {
     const std::string payload = "payload de teste";
     const auto encrypted =
@@ -544,6 +597,9 @@ int main() {
         run_test("storage backup and atomic replace",
                  test_storage_backup_and_atomic_replace);
         run_test("storage failure paths", test_storage_failure_paths);
+              run_test(
+                     "CLI init and no overwrite",
+                     test_cli_init_creates_vault_without_overwrite);
         run_test("encryption round trip and authentication",
                  test_encryption_round_trip_and_authentication);
         run_test("encrypted storage", test_encrypted_storage);

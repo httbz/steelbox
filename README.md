@@ -2,7 +2,7 @@
 
 Gerenciador de senhas pessoal escrito em C++, com armazenamento 100% local.
 
-> **Status: base em desenvolvimento.** A base possui CRUD, persistência criptografada, validação, migrações, `SecureString`, busca e geração segura de senhas. CLI, TUI e revisão de segurança para uso real ainda estão pendentes.
+> **Status: CLI em desenvolvimento.** O núcleo possui CRUD, persistência criptografada, validação, migrações, `SecureString`, busca e geração segura de senhas. A CLI já oferece `init`, `help` e `version`; os demais comandos, a TUI e uma revisão de segurança para uso real ainda estão pendentes.
 
 ## Objetivo
 
@@ -30,7 +30,8 @@ Guardar credenciais (usuário, senha, URL, notas, tags) em um cofre cifrado que 
 
 **Interfaces**
 
-- [ ] Interface de linha de comando (CLI): criar, listar, buscar, editar e remover entradas
+- [x] Primeiros comandos da CLI: `init`, `help` e `version`
+- [ ] Demais comandos da CLI: criar, listar, buscar, editar, remover, exportar e importar entradas
 - [ ] Interface de terminal interativa (TUI)
 
 **Navegadores (Chrome e Firefox)**
@@ -65,6 +66,20 @@ cmake --build build
 
 O executável `steelbox` será gerado dentro de `build/`.
 No Windows, a compilação usa linkagem dinâmica. O vcpkg copia `libsodium.dll` para a mesma pasta de `steelbox.exe` durante o build.
+
+## CLI disponível
+
+`init` cria um cofre vazio e criptografado. Sem opções, o arquivo `steelbox.vault` fica na mesma pasta do executável; `--vault <caminho>` escolhe outro destino. Um arquivo existente nunca é sobrescrito. A senha mestra é solicitada sem eco, com confirmação.
+
+```sh
+steelbox init
+steelbox init --vault "D:\Steelbox\pessoal.vault"
+steelbox help
+steelbox help init
+steelbox version
+```
+
+No Windows, execute o programa no caminho gerado pelo CMake, normalmente `build\Debug\steelbox.exe` ou `build\Release\steelbox.exe`.
 
 ## Testes, sanitizers e fuzzing
 
