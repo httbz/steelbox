@@ -12,14 +12,13 @@ public:
     SecureBuffer() = default;
 
     explicit SecureBuffer(std::size_t size)
-        : data_(static_cast<unsigned char*>(sodium_malloc(size))),
+        : data_(allocate(size)),
           size_(size) {
         if (data_ == nullptr || sodium_mlock(data_, size_) != 0) {
             if (data_ != nullptr) {
                 sodium_free(data_);
             }
             data_ = nullptr;
-            size_ = 0;
             return;
         }
         std::memset(data_, 0, size_);
@@ -71,11 +70,18 @@ public:
             sodium_munlock(data_, size_);
             sodium_free(data_);
             data_ = nullptr;
-            size_ = 0;
         }
+        size_ = 0;
     }
 
 private:
+    static unsigned char* allocate(std::size_t size) {
+        if (size == 0 || sodium_init() < 0) {
+            return nullptr;
+        }
+        return static_cast<unsigned char*>(sodium_malloc(size));
+    }
+
     unsigned char* data_ = nullptr;
     std::size_t size_ = 0;
 };

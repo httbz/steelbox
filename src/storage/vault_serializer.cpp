@@ -6,6 +6,7 @@
 #include <regex>
 #include <string>
 #include <utility>
+#include <sodium.h>
 
 namespace steelbox {
 
@@ -19,7 +20,7 @@ void to_json(json& value, const PasswordEntry& entry) {
         {"id", entry.id},
         {"title", entry.title},
         {"username", entry.username},
-        {"password", entry.password},
+        {"password", std::string(entry.password.view())},
         {"url", entry.url},
         {"normalized_domain", entry.normalized_domain},
         {"notes", entry.notes},
@@ -38,7 +39,9 @@ bool from_json(const json& value, PasswordEntry& entry, std::string& error) {
         entry.id = value.at("id").get<std::string>();
         entry.title = value.at("title").get<std::string>();
         entry.username = value.at("username").get<std::string>();
-        entry.password = value.at("password").get<std::string>();
+        std::string password = value.at("password").get<std::string>();
+        entry.password = password;
+        sodium_memzero(password.data(), password.size());
         entry.url = value.at("url").get<std::string>();
         entry.normalized_domain =
             value.at("normalized_domain").get<std::string>();

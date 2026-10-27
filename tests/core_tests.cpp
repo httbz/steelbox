@@ -13,6 +13,7 @@
 #include <regex>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 
 namespace {
 
@@ -329,6 +330,27 @@ void test_serialization_round_trip() {
            "O round-trip deveria preservar a senha.");
 }
 
+void test_secure_string_copy_move_and_cleanup() {
+    static_assert(std::is_copy_constructible_v<steelbox::PasswordEntry>);
+    static_assert(std::is_move_constructible_v<steelbox::PasswordEntry>);
+
+    steelbox::PasswordEntry original = valid_entry();
+    steelbox::PasswordEntry copy = original;
+    expect(copy.password == "test-password",
+           "A copia deveria preservar a senha protegida.");
+
+    steelbox::PasswordEntry moved = std::move(copy);
+    expect(moved.password == "test-password",
+           "A movimentacao deveria preservar a senha protegida.");
+    copy.password = "replacement";
+    expect(moved.password == "test-password",
+           "A copia movida nao deveria compartilhar o buffer.");
+
+    moved.password.clear();
+    expect(moved.password.empty(),
+           "A limpeza explicita deveria remover a senha.");
+}
+
 void test_format_migration() {
     steelbox::Vault restored;
     const auto result = steelbox::deserialize_vault(
@@ -484,6 +506,7 @@ int main() {
         run_test("remove and lock", test_remove_and_lock);
         run_test("const vault access", test_const_vault_access);
         run_test("serialization round trip", test_serialization_round_trip);
+        run_test("secure string lifecycle", test_secure_string_copy_move_and_cleanup);
         run_test("format migration", test_format_migration);
         run_test(
             "storage backup and atomic replace",

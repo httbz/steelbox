@@ -2,7 +2,7 @@
 
 Gerenciador de senhas pessoal escrito em C++, com armazenamento 100% local.
 
-> **Status: em desenvolvimento inicial.** O projeto ainda não é utilizável para guardar senhas reais. Hoje existe apenas o modelo de dados em memória; criptografia e persistência em disco são os próximos passos.
+> **Status: núcleo em desenvolvimento.** O núcleo possui CRUD, persistência criptografada, validação, migrações, `SecureString`, busca e geração segura de senhas. CLI, TUI e revisão de segurança para uso real ainda estão pendentes.
 
 ## Objetivo
 
@@ -20,13 +20,13 @@ Guardar credenciais (usuário, senha, URL, notas, tags) em um cofre cifrado que 
 **Núcleo**
 
 - [x] Modelo de dados (`PasswordEntry`) e cofre em memória com CRUD (`Vault`)
-- [ ] Organização do repositório: `.gitignore`, remoção de artefatos de build e separação em biblioteca (`steelbox_core`) e executáveis
+- [x] Organização do repositório: `.gitignore`, remoção de artefatos de build e separação em biblioteca (`steelbox_core`) e executáveis
 - [ ] Build portátil: linkagem estática (executável único, sem DLLs), cofre procurado ao lado do executável e nada gravado fora da pasta do programa
-- [ ] Criptografia: Argon2id para derivar a chave da senha mestra + cifragem autenticada (libsodium), com os parâmetros guardados no cabeçalho do arquivo
-- [ ] Formato de arquivo versionado, gravação atômica em disco e backup do cofre anterior
-- [ ] Busca no cofre, incluindo por domínio/URL normalizada (necessária para a extensão)
-- [ ] Gerador de senhas
-- [ ] Testes automatizados e integração contínua (Windows, Linux e macOS)
+- [x] Criptografia: Argon2id para derivar a chave da senha mestra + cifragem autenticada (libsodium)
+- [x] Formato de arquivo versionado, migração explícita, gravação atômica e backup
+- [x] Busca no cofre, incluindo por domínio/URL normalizada
+- [x] Gerador de senhas
+- [x] Testes automatizados locais
 
 **Interfaces**
 

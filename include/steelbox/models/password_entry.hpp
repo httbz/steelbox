@@ -1,5 +1,7 @@
 #pragma once
 
+#include <steelbox/crypto/secure_string.hpp>
+
 #include <string>
 #include <vector>
 
@@ -26,7 +28,7 @@ struct PasswordEntry {
     std::string id;
     std::string title;
     std::string username;
-    std::string password;
+    SecureString password;
     std::string url;
     std::string normalized_domain;
     std::string notes;

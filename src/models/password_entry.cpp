@@ -11,7 +11,8 @@ ValidationResult validate_entry(const PasswordEntry& entry) {
         };
     }
 
-    const UrlResult url_result = normalize_url(entry.url);
+    const std::string url = entry.url;
+    const UrlResult url_result = normalize_url(url);
     if (!url_result.valid()) {
         return {
             EntryError::InvalidUrl,
