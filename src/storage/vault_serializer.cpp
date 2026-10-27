@@ -12,6 +12,7 @@ namespace steelbox {
 namespace {
 
 using json = nlohmann::json;
+constexpr int current_format_version = 2;
 
 void to_json(json& value, const PasswordEntry& entry) {
     value = json{
@@ -85,6 +86,38 @@ bool from_json(const json& value, PasswordEntry& entry, std::string& error) {
     }
 }
 
+bool migrate_v1_to_v2(json& root, std::string& error) {
+    if (!root.at("entries").is_array()) {
+        error = "O campo entries deve ser uma lista.";
+        return false;
+    }
+
+    for (auto& serialized_entry : root.at("entries")) {
+        if (!serialized_entry.is_object()) {
+            error = "A entrada deve ser um objeto.";
+            return false;
+        }
+        if (!serialized_entry.contains("normalized_domain")) {
+            try {
+                const auto url = serialized_entry.at("url").get<std::string>();
+                const UrlResult normalized = normalize_url(url);
+                if (!normalized.valid()) {
+                    error = normalized.message;
+                    return false;
+                }
+                serialized_entry["normalized_domain"] = normalized.domain;
+            } catch (const json::exception& exception) {
+                error = exception.what();
+                return false;
+            }
+        }
+    }
+
+    root["format_version"] = current_format_version;
+    root["schema"] = "steelbox.vault";
+    return true;
+}
+
 }
 
 SerializationResult serialize_vault(const Vault& vault) {
@@ -98,7 +131,8 @@ SerializationResult serialize_vault(const Vault& vault) {
     }
 
     nlohmann::json root;
-    root["format_version"] = 1;
+    root["format_version"] = current_format_version;
+    root["schema"] = "steelbox.vault";
     root["entries"] = nlohmann::json::array();
 
     for (const auto& entry : *entries) {
@@ -112,7 +146,7 @@ SerializationResult serialize_vault(const Vault& vault) {
 
 SerializationResult deserialize_vault(const std::string& data, Vault& vault) {
     try {
-        const auto root = nlohmann::json::parse(data);
+        auto root = nlohmann::json::parse(data);
         if (!root.is_object() ||
             !root.contains("format_version") ||
             !root.contains("entries")) {
@@ -121,10 +155,21 @@ SerializationResult deserialize_vault(const std::string& data, Vault& vault) {
         if (!root["format_version"].is_number_integer()) {
             return {false, "", "A versao do formato deve ser um inteiro."};
         }
-        if (root.at("format_version").get<int>() != 1) {
+        const int format_version = root.at("format_version").get<int>();
+        if (format_version == 1) {
+            std::string migration_error;
+            if (!migrate_v1_to_v2(root, migration_error)) {
+                return {false, "", "Migracao para o formato 2 falhou: " +
+                    migration_error};
+            }
+        } else if (format_version != current_format_version) {
             return {false, "", "Versao do formato nao suportada."};
         }
 
+        if (!root.at("schema").is_string() ||
+            root.at("schema").get<std::string>() != "steelbox.vault") {
+            return {false, "", "Schema do cofre invalido."};
+        }
         if (!root.at("entries").is_array()) {
             return {false, "", "O campo entries deve ser uma lista."};
         }

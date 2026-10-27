@@ -309,7 +309,7 @@ void test_serialization_round_trip() {
 
     const auto serialized = steelbox::serialize_vault(vault);
     expect(serialized.succeeded, "A serializacao deveria funcionar.");
-    expect(serialized.data.find("\"format_version\": 1") !=
+    expect(serialized.data.find("\"format_version\": 2") !=
                std::string::npos,
            "A serializacao deveria conter a versao do formato.");
 
@@ -327,6 +327,17 @@ void test_serialization_round_trip() {
            "O round-trip deveria preservar o UUID.");
     expect(entries->front().password == "test-password",
            "O round-trip deveria preservar a senha.");
+}
+
+void test_format_migration() {
+    steelbox::Vault restored;
+    const auto result = steelbox::deserialize_vault(
+        R"({"format_version":1,"entries":[{"id":"123e4567-e89b-42d3-a456-426614174000","title":"","username":"u","password":"p","url":"https://example.com","notes":"","tags":[],"created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"}]})",
+        restored
+    );
+    expect(result.succeeded, "Formato 1 deveria ser migrado explicitamente.");
+    expect(restored.entries()->front().normalized_domain == "example.com",
+           "A migracao deveria derivar o dominio normalizado.");
 }
 
 void test_storage_backup_and_atomic_replace() {
@@ -473,6 +484,7 @@ int main() {
         run_test("remove and lock", test_remove_and_lock);
         run_test("const vault access", test_const_vault_access);
         run_test("serialization round trip", test_serialization_round_trip);
+        run_test("format migration", test_format_migration);
         run_test(
             "storage backup and atomic replace",
             test_storage_backup_and_atomic_replace
