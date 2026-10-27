@@ -1,8 +1,11 @@
 #include <steelbox/models/password_entry.hpp>
 #include <steelbox/models/url.hpp>
 #include <steelbox/models/vault.hpp>
+#include <steelbox/storage/vault_serializer.hpp>
+#include <steelbox/storage/vault_storage.hpp>
 
 #include <cstdlib>
+#include <filesystem>
 #include <iostream>
 #include <regex>
 #include <stdexcept>
@@ -228,6 +231,69 @@ void test_remove_and_lock() {
            "Cofre bloqueado nao deveria expor entradas.");
 }
 
+void test_serialization_round_trip() {
+    steelbox::Vault vault;
+    vault.unlock();
+    const auto add_result = vault.add_entry(valid_entry());
+    expect(add_result.succeeded(), "A entrada deveria ser adicionada.");
+
+    const auto serialized = steelbox::serialize_vault(vault);
+    expect(serialized.succeeded, "A serializacao deveria funcionar.");
+    expect(serialized.data.find("\"format_version\": 1") !=
+               std::string::npos,
+           "A serializacao deveria conter a versao do formato.");
+
+    steelbox::Vault restored;
+    const auto deserialized =
+        steelbox::deserialize_vault(serialized.data, restored);
+    expect(deserialized.succeeded, "A desserializacao deveria funcionar.");
+    expect(restored.state() == steelbox::VaultState::Unlocked,
+           "O cofre desserializado deveria estar desbloqueado.");
+
+    const auto* entries = restored.entries();
+    expect(entries != nullptr && entries->size() == 1,
+           "O round-trip deveria preservar as entradas.");
+    expect(entries->front().id == add_result.entry_id,
+           "O round-trip deveria preservar o UUID.");
+    expect(entries->front().password == "test-password",
+           "O round-trip deveria preservar a senha.");
+}
+
+void test_storage_backup_and_atomic_replace() {
+    const auto directory =
+        std::filesystem::temp_directory_path() / "steelbox-core-tests";
+    std::filesystem::create_directories(directory);
+    const auto vault_path = directory / "test.vault";
+    const auto backup_path = std::filesystem::path(vault_path.string() + ".bak");
+
+    steelbox::Vault first;
+    first.unlock();
+    expect(first.add_entry(valid_entry()).succeeded(),
+           "O primeiro cofre deveria aceitar a entrada.");
+    expect(steelbox::save_vault(first, vault_path).succeeded,
+           "O primeiro salvamento deveria funcionar.");
+
+    steelbox::Vault second;
+    second.unlock();
+    auto second_entry = valid_entry();
+    second_entry.title = "Second version";
+    expect(second.add_entry(second_entry).succeeded(),
+           "O segundo cofre deveria aceitar a entrada.");
+    expect(steelbox::save_vault(second, vault_path).succeeded,
+           "O segundo salvamento deveria funcionar.");
+    expect(std::filesystem::exists(backup_path),
+           "O segundo salvamento deveria criar backup.");
+
+    steelbox::Vault loaded;
+    expect(steelbox::load_vault(loaded, vault_path).succeeded,
+           "O cofre salvo deveria ser carregado.");
+    const auto* entries = loaded.entries();
+    expect(entries != nullptr && entries->front().title == "Second version",
+           "O arquivo principal deveria conter a versao mais recente.");
+
+    std::filesystem::remove_all(directory);
+}
+
 void run_test(const char* name, void (*test)()) {
     test();
     std::cout << "[PASS] " << name << "\n";
@@ -245,6 +311,11 @@ int main() {
         run_test("missing entry errors", test_missing_entry_errors);
         run_test("remove and lock", test_remove_and_lock);
         run_test("const vault access", test_const_vault_access);
+        run_test("serialization round trip", test_serialization_round_trip);
+        run_test(
+            "storage backup and atomic replace",
+            test_storage_backup_and_atomic_replace
+        );
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "[FAIL] " << error.what() << "\n";

@@ -86,6 +86,30 @@ VaultResult Vault::add_entry(PasswordEntry entry) {
     };
 }
 
+VaultResult Vault::restore_entry(PasswordEntry entry) {
+    if (state_ == VaultState::Locked) {
+        return {VaultError::Locked, "O cofre esta bloqueado.", ""};
+    }
+
+    if (entry.id.empty() || find_entry(entry.id) != nullptr) {
+        return {VaultError::DuplicateId, "ID de entrada invalido ou duplicado.", ""};
+    }
+
+    const ValidationResult validation = validate_entry(entry);
+    if (!validation.valid()) {
+        return {VaultError::InvalidEntry, validation.message, ""};
+    }
+
+    const UrlResult url_result = normalize_url(entry.url);
+    if (!url_result.valid()) {
+        return {VaultError::InvalidEntry, url_result.message, ""};
+    }
+
+    entry.normalized_domain = url_result.domain;
+    entries_.push_back(std::move(entry));
+    return {};
+}
+
 VaultResult Vault::update_entry(const PasswordEntry& updated_entry) {
     if (state_ == VaultState::Locked) {
         return {

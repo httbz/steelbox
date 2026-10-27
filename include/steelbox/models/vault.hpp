@@ -33,6 +33,7 @@ struct VaultResult {
 class Vault {
 public:
     VaultResult add_entry(PasswordEntry entry);
+    VaultResult restore_entry(PasswordEntry entry);
     VaultResult update_entry(const PasswordEntry& updated_entry);
     VaultResult remove_entry(const std::string& id);
     PasswordEntry* find_entry(const std::string& id);
