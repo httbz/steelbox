@@ -1,5 +1,6 @@
 #include <steelbox/storage/vault_storage.hpp>
 #include <steelbox/storage/vault_serializer.hpp>
+#include <steelbox/crypto/vault_crypto.hpp>
 
 #include <array>
 #include <cstdint>
@@ -16,7 +17,7 @@ namespace steelbox {
 namespace {
 
 constexpr std::array<char, 4> magic = {'S', 'T', 'B', 'X'};
-constexpr std::uint32_t format_version = 1;
+constexpr std::uint32_t format_version = 2;
 
 template <typename Integer>
 void write_integer(std::ostream& output, Integer value) {
@@ -88,18 +89,25 @@ StorageResult replace_file(
 
 StorageResult save_vault(
     const Vault& vault,
-    const std::filesystem::path& vault_path
+    const std::filesystem::path& vault_path,
+    const std::string& master_password
 ) {
     const SerializationResult serialized = serialize_vault(vault);
     if (!serialized.succeeded) {
         return {false, serialized.message};
     }
 
+    const CryptoResult encrypted =
+        encrypt_payload(serialized.data, master_password);
+    if (!encrypted.succeeded) {
+        return {false, encrypted.message};
+    }
+
     const std::filesystem::path temporary_path = vault_path.string() + ".tmp";
     const std::filesystem::path backup_path = vault_path.string() + ".bak";
 
     const StorageResult temporary_result =
-        write_file(temporary_path, serialized.data);
+        write_file(temporary_path, encrypted.data);
     if (!temporary_result.succeeded) {
         return temporary_result;
     }
@@ -130,7 +138,8 @@ StorageResult save_vault(
 
 StorageResult load_vault(
     Vault& vault,
-    const std::filesystem::path& vault_path
+    const std::filesystem::path& vault_path,
+    const std::string& master_password
 ) {
     std::ifstream input(vault_path, std::ios::binary);
     if (!input) {
@@ -152,17 +161,26 @@ StorageResult load_vault(
         return {false, "Cabecalho do cofre invalido."};
     }
 
-    std::string payload(static_cast<std::size_t>(payload_size), '\0');
+    std::string encrypted_payload(
+        static_cast<std::size_t>(payload_size),
+        '\0'
+    );
     input.read(
-        payload.data(),
-        static_cast<std::streamsize>(payload.size())
+        encrypted_payload.data(),
+        static_cast<std::streamsize>(encrypted_payload.size())
     );
     if (!input) {
         return {false, "Payload do cofre incompleto."};
     }
 
+    const CryptoResult decrypted =
+        decrypt_payload(encrypted_payload, master_password);
+    if (!decrypted.succeeded) {
+        return {false, decrypted.message};
+    }
+
     const SerializationResult deserialized =
-        deserialize_vault(payload, vault);
+        deserialize_vault(decrypted.data, vault);
     if (!deserialized.succeeded) {
         return {false, deserialized.message};
     }

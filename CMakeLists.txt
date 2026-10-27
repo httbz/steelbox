@@ -14,12 +14,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+find_package(unofficial-sodium CONFIG REQUIRED)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(steelbox
     src/main.cpp
+    src/crypto/vault_crypto.cpp
     src/models/password_entry.cpp
     src/storage/vault_serializer.cpp
     src/storage/vault_storage.cpp
@@ -31,10 +34,16 @@ target_include_directories(steelbox
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-target_link_libraries(steelbox PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(
+    steelbox
+    PRIVATE
+        nlohmann_json::nlohmann_json
+        unofficial-sodium::sodium
+)
 
 add_executable(steelbox_tests
     tests/core_tests.cpp
+    src/crypto/vault_crypto.cpp
     src/models/password_entry.cpp
     src/storage/vault_serializer.cpp
     src/storage/vault_storage.cpp
@@ -46,6 +55,11 @@ target_include_directories(steelbox_tests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
-target_link_libraries(steelbox_tests PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(
+    steelbox_tests
+    PRIVATE
+        nlohmann_json::nlohmann_json
+        unofficial-sodium::sodium
+)
 
 add_test(NAME steelbox_core_tests COMMAND steelbox_tests)

@@ -1,11 +1,13 @@
 #include <steelbox/models/password_entry.hpp>
 #include <steelbox/models/url.hpp>
 #include <steelbox/models/vault.hpp>
+#include <steelbox/crypto/vault_crypto.hpp>
 #include <steelbox/storage/vault_serializer.hpp>
 #include <steelbox/storage/vault_storage.hpp>
 
 #include <cstdlib>
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <regex>
 #include <stdexcept>
@@ -270,7 +272,11 @@ void test_storage_backup_and_atomic_replace() {
     first.unlock();
     expect(first.add_entry(valid_entry()).succeeded(),
            "O primeiro cofre deveria aceitar a entrada.");
-    expect(steelbox::save_vault(first, vault_path).succeeded,
+    expect(steelbox::save_vault(
+               first,
+               vault_path,
+               "master-password"
+           ).succeeded,
            "O primeiro salvamento deveria funcionar.");
 
     steelbox::Vault second;
@@ -279,17 +285,88 @@ void test_storage_backup_and_atomic_replace() {
     second_entry.title = "Second version";
     expect(second.add_entry(second_entry).succeeded(),
            "O segundo cofre deveria aceitar a entrada.");
-    expect(steelbox::save_vault(second, vault_path).succeeded,
+    expect(steelbox::save_vault(
+               second,
+               vault_path,
+               "master-password"
+           ).succeeded,
            "O segundo salvamento deveria funcionar.");
     expect(std::filesystem::exists(backup_path),
            "O segundo salvamento deveria criar backup.");
 
     steelbox::Vault loaded;
-    expect(steelbox::load_vault(loaded, vault_path).succeeded,
+    expect(steelbox::load_vault(loaded, vault_path, "master-password").succeeded,
            "O cofre salvo deveria ser carregado.");
     const auto* entries = loaded.entries();
     expect(entries != nullptr && entries->front().title == "Second version",
            "O arquivo principal deveria conter a versao mais recente.");
+
+    std::filesystem::remove_all(directory);
+}
+
+void test_encryption_round_trip_and_authentication() {
+    const std::string payload = "payload de teste";
+    const auto encrypted =
+        steelbox::encrypt_payload(payload, "master-password");
+    expect(encrypted.succeeded, "A cifragem deveria funcionar.");
+    expect(encrypted.data != payload,
+           "O payload cifrado nao deveria ser texto puro.");
+
+    const auto decrypted =
+        steelbox::decrypt_payload(encrypted.data, "master-password");
+    expect(decrypted.succeeded && decrypted.data == payload,
+           "A decifragem deveria recuperar o payload.");
+
+    const auto wrong_password =
+        steelbox::decrypt_payload(encrypted.data, "wrong-password");
+    expect(!wrong_password.succeeded,
+           "Senha mestra incorreta deveria falhar.");
+
+    std::string tampered = encrypted.data;
+    tampered.back() ^= 0x01;
+    const auto tampered_result =
+        steelbox::decrypt_payload(tampered, "master-password");
+    expect(!tampered_result.succeeded,
+           "Payload adulterado deveria falhar na autenticacao.");
+}
+
+void test_encrypted_storage() {
+    const auto directory =
+        std::filesystem::temp_directory_path() / "steelbox-crypto-tests";
+    std::filesystem::create_directories(directory);
+    const auto vault_path = directory / "encrypted.vault";
+
+    steelbox::Vault vault;
+    vault.unlock();
+    expect(vault.add_entry(valid_entry()).succeeded(),
+           "O cofre deveria aceitar a entrada.");
+    expect(steelbox::save_vault(vault, vault_path, "master-password").succeeded,
+           "O salvamento criptografado deveria funcionar.");
+
+    std::ifstream input(vault_path, std::ios::binary);
+    const std::string file_data{
+        std::istreambuf_iterator<char>(input),
+        std::istreambuf_iterator<char>()
+    };
+    input.close();
+    expect(file_data.find("test-password") == std::string::npos,
+           "O arquivo nao deveria conter a senha em texto puro.");
+
+    steelbox::Vault loaded;
+    expect(steelbox::load_vault(
+               loaded,
+               vault_path,
+               "master-password"
+           ).succeeded,
+           "O carregamento criptografado deveria funcionar.");
+
+    steelbox::Vault wrong_password;
+    expect(!steelbox::load_vault(
+               wrong_password,
+               vault_path,
+               "wrong-password"
+           ).succeeded,
+           "Carregamento com senha errada deveria falhar.");
 
     std::filesystem::remove_all(directory);
 }
@@ -316,6 +393,11 @@ int main() {
             "storage backup and atomic replace",
             test_storage_backup_and_atomic_replace
         );
+        run_test(
+            "encryption round trip and authentication",
+            test_encryption_round_trip_and_authentication
+        );
+        run_test("encrypted storage", test_encrypted_storage);
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "[FAIL] " << error.what() << "\n";

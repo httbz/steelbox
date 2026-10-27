@@ -14,12 +14,14 @@ struct StorageResult {
 
 StorageResult save_vault(
     const Vault& vault,
-    const std::filesystem::path& vault_path
+    const std::filesystem::path& vault_path,
+    const std::string& master_password
 );
 
 StorageResult load_vault(
     Vault& vault,
-    const std::filesystem::path& vault_path
+    const std::filesystem::path& vault_path,
+    const std::string& master_password
 );
 
 }
