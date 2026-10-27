@@ -69,17 +69,6 @@ target_link_libraries(
 
 add_test(NAME steelbox_core_tests COMMAND steelbox_tests)
 
-if(WIN32)
-    foreach(target steelbox steelbox_tests)
-        add_custom_command(TARGET ${target} POST_BUILD
-            COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                $<TARGET_RUNTIME_DLLS:${target}>
-                $<TARGET_FILE_DIR:${target}>
-            COMMAND_EXPAND_LISTS
-        )
-    endforeach()
-endif()
-
 option(STEELBOX_ENABLE_SANITIZERS "Enable AddressSanitizer and UBSan" OFF)
 option(STEELBOX_BUILD_FUZZER "Build the parser fuzz target with libFuzzer" OFF)
 

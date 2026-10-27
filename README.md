@@ -64,7 +64,7 @@ cmake --build build
 ```
 
 O executável `steelbox` será gerado dentro de `build/`.
-No Windows, a compilação usa linkagem dinâmica e copia `libsodium.dll` para a mesma pasta de `steelbox.exe`.
+No Windows, a compilação usa linkagem dinâmica. O vcpkg copia `libsodium.dll` para a mesma pasta de `steelbox.exe` durante o build.
 
 ## Testes, sanitizers e fuzzing
 
