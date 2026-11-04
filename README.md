@@ -2,7 +2,7 @@
 
 Gerenciador de senhas pessoal escrito em C++, com armazenamento 100% local.
 
-> **Status: TUI inicial em desenvolvimento.** O núcleo e a CLI estão funcionais. A TUI já oferece desbloqueio, lista, busca e visualização sem revelar senha; edição, cadastro, exclusão e bloqueio por inatividade ainda estão pendentes.
+> **Status: TUI CRUD em desenvolvimento.** O núcleo, a CLI e as telas principais da TUI estão funcionais. A documentação completa da interface está em [docs/TUI.md](docs/TUI.md); ainda faltam bloqueio por inatividade e revelação temporária na tela de detalhes.
 
 ## Objetivo
 
@@ -56,7 +56,7 @@ dependência suportada para este build.
 
 - [x] Primeiros comandos da CLI: `init`, `help` e `version`
 - [x] Demais comandos da CLI: criar, listar, buscar, editar, remover, exportar e importar entradas
-- [x] Primeira TUI com FTXUI: desbloqueio, lista, busca e visualização
+- [x] TUI com FTXUI: desbloqueio, CRUD, busca, geração de senha e troca da senha mestra
 
 **Navegadores (Chrome e Firefox)**
 
@@ -90,6 +90,16 @@ cmake --build build
 
 O executável `steelbox` será gerado dentro de `build/`.
 No Windows, a compilação usa linkagem dinâmica. O vcpkg copia `libsodium.dll` para a mesma pasta de `steelbox.exe` durante o build.
+
+## TUI disponível
+
+```powershell
+cmake --build build-tui
+.\build-tui\steelbox_tui.exe --vault .\steelbox.vault
+```
+
+A documentação de todas as telas, controles e atalhos está em
+[docs/TUI.md](docs/TUI.md).
 
 ## CLI disponível
 
