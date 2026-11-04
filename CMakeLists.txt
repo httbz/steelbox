@@ -17,6 +17,13 @@ FetchContent_MakeAvailable(nlohmann_json)
 find_package(unofficial-sodium CONFIG QUIET)
 if(TARGET unofficial-sodium::sodium)
     set(STEELBOX_SODIUM_TARGET unofficial-sodium::sodium)
+elseif(WIN32)
+    message(FATAL_ERROR
+        "libsodium nao foi encontrada no Windows. "
+        "Configure com o toolchain do vcpkg: "
+        "-DCMAKE_TOOLCHAIN_FILE=C:/Users/Bernardo/vcpkg/scripts/buildsystems/vcpkg.cmake "
+        "-DVCPKG_TARGET_TRIPLET=x64-windows"
+    )
 else()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(SODIUM REQUIRED IMPORTED_TARGET libsodium)

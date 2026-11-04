@@ -17,6 +17,30 @@ Guardar credenciais (usuário, senha, URL, notas, tags) em um cofre cifrado que 
 
 ## Roadmap
 
+## Compilação no Windows
+
+O projeto usa a libsodium dinâmica fornecida pelo vcpkg. No Windows, configure
+o CMake com o toolchain do vcpkg:
+
+```powershell
+cmake -S . -B build -G Ninja `
+  -DCMAKE_TOOLCHAIN_FILE=C:\Users\Bernardo\vcpkg\scripts\buildsystems\vcpkg.cmake `
+  -DVCPKG_TARGET_TRIPLET=x64-windows
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
+
+Se o vcpkg estiver instalado em outro local, ajuste o caminho de
+`CMAKE_TOOLCHAIN_FILE`. Caso a dependência ainda não esteja instalada:
+
+```powershell
+vcpkg install libsodium:x64-windows
+```
+
+Sem o toolchain, o CMake não encontra o target `unofficial-sodium::sodium`.
+No Windows o projeto não tenta usar `PkgConfig`, pois essa não é a rota de
+dependência suportada para este build.
+
 **Base**
 
 - [x] Modelo de dados (`PasswordEntry`) e cofre em memória com CRUD (`Vault`)
