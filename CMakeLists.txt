@@ -13,6 +13,12 @@ FetchContent_Declare(
     URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
 )
 FetchContent_MakeAvailable(nlohmann_json)
+FetchContent_Declare(
+    ftxui
+    GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui.git
+    GIT_TAG v5.0.0
+)
+FetchContent_MakeAvailable(ftxui)
 
 find_package(unofficial-sodium CONFIG QUIET)
 if(TARGET unofficial-sodium::sodium)
@@ -90,8 +96,19 @@ target_link_libraries(
 
 add_test(NAME steelbox_core_tests COMMAND steelbox_tests)
 
+add_executable(steelbox_tui
+    src/tui/main.cpp
+)
+target_link_libraries(steelbox_tui
+    PRIVATE
+        steelbox_core
+        ftxui::component
+        ftxui::dom
+        ftxui::screen
+)
+
 if(WIN32)
-    foreach(target steelbox steelbox_tests)
+    foreach(target steelbox steelbox_tests steelbox_tui)
         add_custom_command(TARGET ${target} POST_BUILD
             COMMAND "$<$<BOOL:$<TARGET_RUNTIME_DLLS:${target}>>:${CMAKE_COMMAND};-E;copy_if_different;$<TARGET_RUNTIME_DLLS:${target}>;$<TARGET_FILE_DIR:${target}>>"
             COMMAND_EXPAND_LISTS

@@ -194,7 +194,6 @@ bool load_for_command(
         std::cerr << "Erro: o caminho do cofre nao e um arquivo regular.\n";
         return false;
     }
-    const SecretWiper wiper{master};
     if (!read_master(master, false)) {
         return false;
     }
@@ -230,6 +229,7 @@ int add_command(const std::vector<std::string>& arguments) {
     const auto path = parse_vault_path(arguments, index);
     if (index != arguments.size()) throw std::runtime_error("Opcoes invalidas para add.");
     std::string master;
+    const SecretWiper master_wiper{master};
     steelbox::Vault vault;
     if (!load_for_command(path, master, vault)) return 1;
     steelbox::PasswordEntry entry;
@@ -296,6 +296,7 @@ int load_and_find(
         throw std::runtime_error("Opcoes invalidas para get.");
     }
     std::string master;
+    const SecretWiper master_wiper{master};
     steelbox::Vault vault;
     if (!load_for_command(path, master, vault)) return 1;
     const auto* entry = vault.find_entry(arguments[1]);
@@ -323,6 +324,7 @@ int list_command(const std::vector<std::string>& arguments) {
         ++index;
     }
     std::string master;
+    const SecretWiper master_wiper{master};
     steelbox::Vault vault;
     if (!load_for_command(path, master, vault)) return 1;
     auto entries = query.empty() ? std::vector<const steelbox::PasswordEntry*>{} : vault.search_entries(query);
@@ -348,6 +350,7 @@ int edit_command(const std::vector<std::string>& arguments) {
         const auto path = parse_vault_path(arguments, index);
         if (index != arguments.size()) throw std::runtime_error("Opcoes invalidas para edit.");
         std::string master;
+        const SecretWiper master_wiper{master};
         steelbox::Vault vault;
         if (!load_for_command(path, master, vault)) return 1;
         auto* entry = vault.find_entry(arguments[1]);
@@ -412,6 +415,7 @@ int remove_command(const std::vector<std::string>& arguments) {
             }
         }
         std::string master;
+        const SecretWiper master_wiper{master};
         steelbox::Vault vault;
         if (!load_for_command(path, master, vault)) return 1;
         const auto result = vault.remove_entry(arguments[1]);
@@ -471,6 +475,7 @@ int export_command(const std::vector<std::string>& arguments) {
             return 1;
         }
         std::string master;
+        const SecretWiper master_wiper{master};
         steelbox::Vault source;
         if (!load_for_command(source_path, master, source)) return 1;
         steelbox::Vault selected;
@@ -510,6 +515,7 @@ int import_command(const std::vector<std::string>& arguments) {
             return 1;
         }
         std::string master;
+        const SecretWiper master_wiper{master};
         steelbox::Vault target;
         if (!load_for_command(default_vault_path(), master, target)) return 1;
         for (const auto& entry : *imported.entries()) {

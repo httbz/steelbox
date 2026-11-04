@@ -2,7 +2,7 @@
 
 Gerenciador de senhas pessoal escrito em C++, com armazenamento 100% local.
 
-> **Status: CLI em desenvolvimento.** O núcleo possui CRUD, persistência criptografada, validação, migrações, `SecureString`, busca e geração segura de senhas. A CLI já oferece `init`, `help` e `version`; os demais comandos, a TUI e uma revisão de segurança para uso real ainda estão pendentes.
+> **Status: TUI inicial em desenvolvimento.** O núcleo e a CLI estão funcionais. A TUI já oferece desbloqueio, lista, busca e visualização sem revelar senha; edição, cadastro, exclusão e bloqueio por inatividade ainda estão pendentes.
 
 ## Objetivo
 
@@ -55,8 +55,8 @@ dependência suportada para este build.
 **Interfaces**
 
 - [x] Primeiros comandos da CLI: `init`, `help` e `version`
-- [ ] Demais comandos da CLI: criar, listar, buscar, editar, remover, exportar e importar entradas
-- [ ] Interface de terminal interativa (TUI)
+- [x] Demais comandos da CLI: criar, listar, buscar, editar, remover, exportar e importar entradas
+- [x] Primeira TUI com FTXUI: desbloqueio, lista, busca e visualização
 
 **Navegadores (Chrome e Firefox)**
 
