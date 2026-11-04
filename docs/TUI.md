@@ -21,16 +21,20 @@ O argumento `--vault` é opcional. Quando omitido, a TUI procura
 - `Shift+Tab`: controle anterior, quando suportado pelo terminal.
 - `Enter` ou `Espaço`: ativa o botão selecionado.
 - `Esc`: volta da visualização para a lista ou sai da lista.
-- `j`/`k`: move a seleção para baixo/acima na lista.
-- `Ctrl+N`/`Ctrl+P`: move a seleção para baixo/acima na lista no estilo Emacs.
-- `v`: visualiza a entrada selecionada.
-- `e`: edita a entrada selecionada.
-- `d`: abre a confirmação de exclusão.
-- `n`: abre o formulário de nova entrada.
-- `s`: executa a busca digitada.
-- `q`: sai da tela de entradas.
-- `Ctrl+C`: interrupção do processo; use os botões ou `Esc` para sair
-  normalmente.
+- `h`/`l`: navegam horizontalmente quando a tela possuir controles nessa
+  direção.
+- `j`/`k`: movem a seleção para baixo/acima na lista.
+- `Ctrl+N`/`Ctrl+P`: também movem a seleção para baixo/acima, no estilo
+  Emacs.
+- `Esc` ou `Backspace`: retornam à tela anterior; na lista, encerram a TUI.
+- `Ctrl+B`: volta da tela de visualização para a lista.
+- `Ctrl+L`: bloqueia o cofre.
+- `Ctrl+O`: mostra a instrução para trocar de cofre.
+- `Ctrl+Q`: encerra a aplicação.
+- `Space` (`Spc`): abre a paleta de comandos rápidos da tela atual.
+- `/` ou `Ctrl+F`: focam o terminal no modo de busca.
+- `vault <caminho>`: troca o arquivo do cofre e retorna à tela de desbloqueio.
+- `Ctrl+C`: interrupção do processo; use `Ctrl+Q` para sair normalmente.
 
 Os campos de senha são mascarados. A senha mestra e as senhas das entradas não
 são exibidas como texto durante a digitação.
@@ -65,25 +69,55 @@ mensagem de erro aparece na própria tela.
 
 É a tela principal para pesquisar e administrar as entradas.
 
+### Terminal de comandos
+
+A tela principal não possui botões de ação. Na parte inferior há um terminal
+de comandos. Ele aceita comandos escritos por extenso e executa-os ao
+pressionar Enter:
+
+```text
+edit
+delete
+new
+view
+search github
+clear
+change-master
+vault C:\caminho\outro.vault
+lock
+quit
+help
+```
+
+Pressionar `Space` mostra a paleta de comandos rápidos. Para buscar
+rapidamente, pressione `/` ou `Ctrl+F`, digite o termo e pressione Enter:
+
+```text
+github
+```
+
+O terminal mostra apenas o termo `github`; a busca é executada internamente
+quando Enter é pressionado. O texto `search` não é inserido no campo.
+
+Pressionar `Space` mostra a paleta de comandos rápidos:
+
+```text
+Spc + E: Edit | Spc + D: Delete | Spc + N: New | Spc + V: View
+```
+
+Depois, pressione a letra indicada. Por exemplo, `Space`, `E` edita a entrada
+selecionada. O texto digitado no terminal não é confundido com esses atalhos:
+é possível escrever `edit` normalmente e pressionar Enter.
+
+Quando o terminal está vazio, `H`, `J`, `K` e `L` continuam disponíveis para
+navegação. Ao começar a escrever um comando, as letras passam a ser texto
+normal do terminal.
+
 ### Controles
 
-- **Busca**: recebe o texto da busca; o filtro só é aplicado ao ativar
-  **Buscar** ou pressionar `s`.
+- **Busca**: é executada pelo comando `search <termo>` ou limpa com `clear`.
 - **Lista**: mostra título, usuário e domínio das entradas filtradas.
-- **Visualizar**: abre a entrada selecionada.
-- **Nova entrada**: abre o formulário de criação.
-- **Editar**: abre o formulário da entrada selecionada.
-- **Excluir**: abre a confirmação de exclusão.
-- **Bloquear**: bloqueia o cofre e volta ao login.
-- **Alterar senha mestra**: abre o formulário de troca da senha.
-- **Sair**: encerra a aplicação.
-
-### Atalhos
-
-- `N`: abre **Nova entrada**.
-- `E`: abre **Editar** para a entrada selecionada.
-- `Enter`: pode ser usado no botão **Visualizar**.
-- `Esc`: bloqueia a tela atual e encerra a aplicação.
+- **Terminal**: mostra a sequência de teclas e recebe comandos completos.
 
 ## Tela de visualização
 
@@ -196,12 +230,17 @@ senha da entrada.
 ### Controles
 
 - **Comprimento**: valor entre 4 e 1024, com padrão 20.
+- **Letras minúsculas (a-z)**: inclui letras minúsculas.
+- **Letras maiúsculas (A-Z)**: inclui letras maiúsculas.
+- **Números (0-9)**: inclui dígitos.
+- **Símbolos**: inclui caracteres especiais.
 - **Gerar**: cria uma nova senha.
 - **Usar na entrada**: copia a senha gerada para o formulário atual.
 - **Cancelar**: retorna ao formulário sem substituir a senha.
 
 A senha gerada é exibida nessa tela para que possa ser conferida antes de ser
-usada.
+usada. Pelo menos um conjunto de caracteres deve permanecer selecionado; caso
+contrário, o núcleo rejeita a geração.
 
 ## Tela de alteração da senha mestra
 
