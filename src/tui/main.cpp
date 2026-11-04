@@ -8,6 +8,7 @@
 
 #include <filesystem>
 #include <iostream>
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -30,6 +31,7 @@ struct App {
     std::string master_password;
     std::string login_password;
     std::string query;
+    std::string pending_query;
     std::string error;
     std::string notice;
     std::string form_title;
@@ -49,6 +51,8 @@ struct App {
     int selected_index = 0;
     int active_component = 0;
     bool editing = false;
+    bool form_password_visible = false;
+    bool detail_password_visible = false;
     UiScreen screen = UiScreen::Login;
 };
 
@@ -81,6 +85,18 @@ std::vector<const steelbox::PasswordEntry*> filtered_entries(const App& app) {
     return app.vault.search_entries(app.query);
 }
 
+bool select_current_entry(App& app) {
+    const auto entries = filtered_entries(app);
+    if (app.selected_index < 0 ||
+        static_cast<std::size_t>(app.selected_index) >= entries.size()) {
+        app.selected = nullptr;
+        return false;
+    }
+    app.selected = entries[static_cast<std::size_t>(app.selected_index)];
+    app.detail_password_visible = false;
+    return true;
+}
+
 void refresh_entry_labels(App& app) {
     app.entry_labels.clear();
     for (const auto* entry : filtered_entries(app)) {
@@ -108,6 +124,7 @@ void clear_form(App& app) {
 
 void begin_new_entry(App& app) {
     clear_form(app);
+    app.form_password_visible = false;
     app.editing = false;
     app.error.clear();
     app.notice.clear();
@@ -123,6 +140,7 @@ void begin_edit_entry(App& app) {
     app.form_password = app.selected->password.view();
     app.form_notes = app.selected->notes;
     app.form_tags.clear();
+    app.form_password_visible = false;
     for (std::size_t index = 0; index < app.selected->tags.size(); ++index) {
         if (index != 0) app.form_tags += ", ";
         app.form_tags += app.selected->tags[index];
@@ -132,6 +150,13 @@ void begin_edit_entry(App& app) {
     app.notice.clear();
     app.screen = UiScreen::EntryForm;
     app.active_component = 3;
+}
+
+void begin_password_generation(App& app) {
+    app.generated_password.clear();
+    app.error.clear();
+    app.screen = UiScreen::GeneratePassword;
+    app.active_component = 5;
 }
 
 std::vector<std::string> parse_tags(const std::string& value) {
@@ -223,21 +248,29 @@ Component login_screen(App& app, ScreenInteractive& screen) {
 }
 
 Component entries_screen(App& app, ScreenInteractive& screen) {
-    auto search = Input(&app.query, "Buscar por titulo, usuario ou dominio");
+    auto search = Input(
+        &app.pending_query, "Buscar por titulo, usuario ou dominio"
+    );
+    auto execute_search = Button("\xF0\x9F\x94\x8D Buscar", [&] {
+        app.query = app.pending_query;
+        app.selected_index = 0;
+        app.selected = nullptr;
+        refresh_entry_labels(app);
+        app.notice = app.query.empty() ? "Busca limpa." : "Busca executada.";
+    });
     auto menu = Menu(&app.entry_labels, &app.selected_index);
     auto view = Button("Visualizar", [&] {
-        const auto entries = filtered_entries(app);
-        if (app.selected_index >= 0 &&
-            static_cast<std::size_t>(app.selected_index) < entries.size()) {
-            app.selected = entries[static_cast<std::size_t>(app.selected_index)];
+        if (select_current_entry(app)) {
             app.screen = UiScreen::Detail;
             app.active_component = 2;
         }
     });
     auto add = Button("Nova entrada", [&] { begin_new_entry(app); });
-    auto edit = Button("Editar", [&] { begin_edit_entry(app); });
+    auto edit = Button("Editar", [&] {
+        if (select_current_entry(app)) begin_edit_entry(app);
+    });
     auto remove = Button("Excluir", [&] {
-        if (app.selected != nullptr) {
+        if (select_current_entry(app)) {
             app.delete_confirmation.clear();
             app.error.clear();
             app.screen = UiScreen::ConfirmDelete;
@@ -264,13 +297,15 @@ Component entries_screen(App& app, ScreenInteractive& screen) {
         screen.Exit();
     });
     auto controls = Container::Vertical({
-        search, menu, view, add, edit, remove, lock, change_master, quit
+        search, execute_search, menu, view, add, edit, remove, lock,
+        change_master, quit
     });
-    return Renderer(controls, [&, search, menu, view, add, edit, remove,
-                               lock, change_master, quit] {
+    return Renderer(controls, [&, search, execute_search, menu, view, add,
+                               edit, remove, lock, change_master, quit] {
         const auto entries = filtered_entries(app);
         return vbox({
-            text("Entradas") | bold, text("Busca:"), search->Render(),
+            text("Entradas") | bold, text("Busca:"),
+            hbox({search->Render(), execute_search->Render()}),
             separator(), menu->Render() | flex, separator(),
             text("Entradas encontradas: " + std::to_string(entries.size())),
             view->Render(), add->Render(), edit->Render(), remove->Render(),
@@ -286,14 +321,21 @@ Component detail_screen(App& app) {
         app.screen = UiScreen::Entries;
         app.active_component = 1;
     });
-    auto edit = Button("Editar", [&] { begin_edit_entry(app); });
-    auto remove = Button("Excluir", [&] {
-        app.delete_confirmation.clear();
-        app.screen = UiScreen::ConfirmDelete;
-        app.active_component = 4;
+    auto edit = Button("Editar", [&] {
+        if (select_current_entry(app)) begin_edit_entry(app);
     });
-    auto controls = Container::Vertical({edit, remove, back});
-    return Renderer(controls, [&, edit, remove, back] {
+    auto remove = Button("Excluir", [&] {
+        if (select_current_entry(app)) {
+            app.delete_confirmation.clear();
+            app.screen = UiScreen::ConfirmDelete;
+            app.active_component = 4;
+        }
+    });
+    auto reveal = Button("Visualizar senha", [&] {
+        app.detail_password_visible = !app.detail_password_visible;
+    });
+    auto controls = Container::Vertical({reveal, edit, remove, back});
+    return Renderer(controls, [&, reveal, edit, remove, back] {
         if (app.selected == nullptr) return text("Nenhuma entrada selecionada.") | border;
         const auto& entry = *app.selected;
         return vbox({
@@ -302,8 +344,12 @@ Component detail_screen(App& app) {
             text("Usuario: " + entry.username), text("URL: " + entry.url),
             text("Dominio: " + entry.normalized_domain),
             text("Tags: " + std::to_string(entry.tags.size())),
-            text("Notas: " + entry.notes), text("Senha: ********"),
-            separator(), edit->Render(), remove->Render(), back->Render()
+            text("Notas: " + entry.notes),
+            text(app.detail_password_visible
+                ? std::string("Senha: ") + std::string(entry.password.view())
+                : "Senha: ********"),
+            separator(), reveal->Render(), edit->Render(), remove->Render(),
+            back->Render()
         }) | border;
     });
 }
@@ -312,16 +358,17 @@ Component entry_form_screen(App& app) {
     auto title = Input(&app.form_title, "Titulo");
     auto username = Input(&app.form_username, "Usuario");
     auto url = Input(&app.form_url, "https://exemplo.com");
-    auto password = Input(&app.form_password, "Senha", InputOption{.password = true});
+    InputOption password_options;
+    password_options.placeholder = "Senha";
+    password_options.password = &app.form_password_visible;
+    auto password = Input(&app.form_password, password_options);
     auto notes = Input(&app.form_notes, "Notas");
     auto tags = Input(&app.form_tags, "tag1, tag2");
     auto generate = Button("Gerar senha", [&] {
-        const auto result = steelbox::generate_password();
-        if (!result.succeeded) app.error = result.message;
-        else {
-            app.form_password = result.password;
-            app.error.clear();
-        }
+        begin_password_generation(app);
+    });
+    auto reveal = Button("Visualizar senha", [&] {
+        app.form_password_visible = !app.form_password_visible;
     });
     auto save = Button("Salvar", [&] { save_form(app); });
     auto cancel = Button("Cancelar", [&] {
@@ -330,15 +377,17 @@ Component entry_form_screen(App& app) {
         app.active_component = app.screen == UiScreen::Entries ? 1 : 2;
     });
     auto controls = Container::Vertical({
-        title, username, url, password, generate, notes, tags, save, cancel
+        title, username, url, password, reveal, generate, notes, tags, save,
+        cancel
     });
-    return Renderer(controls, [&, title, username, url, password, generate,
-                               notes, tags, save, cancel] {
+    return Renderer(controls, [&, title, username, url, password, reveal,
+                               generate, notes, tags, save, cancel] {
         Elements content = {
             text(app.editing ? "Editar entrada" : "Nova entrada") | bold,
             separator(), text("Titulo:"), title->Render(),
             text("Usuario:"), username->Render(), text("URL:"), url->Render(),
-            text("Senha:"), password->Render(), generate->Render(),
+            text("Senha:"), hbox({password->Render(), reveal->Render()}),
+            generate->Render(),
             text("Notas:"), notes->Render(), text("Tags:"), tags->Render(),
             save->Render(), cancel->Render()
         };
@@ -534,16 +583,73 @@ int main(int argc, char* argv[]) {
             return true;
         }
         if (event == ftxui::Event::Character("e") &&
-            app.screen == UiScreen::Entries && app.selected != nullptr) {
-            begin_edit_entry(app);
+            app.screen == UiScreen::Entries) {
+            if (select_current_entry(app)) begin_edit_entry(app);
             return true;
         }
-        if (event == ftxui::Event::Character("g") &&
-            (app.screen == UiScreen::EntryForm)) {
-            app.generated_password.clear();
-            app.error.clear();
-            app.screen = UiScreen::GeneratePassword;
-            app.active_component = 5;
+        if (event == ftxui::Event::Character("d") &&
+            app.screen == UiScreen::Entries) {
+            if (select_current_entry(app)) {
+                app.delete_confirmation.clear();
+                app.error.clear();
+                app.screen = UiScreen::ConfirmDelete;
+                app.active_component = 4;
+            }
+            return true;
+        }
+        if (event == ftxui::Event::Character("v") &&
+            app.screen == UiScreen::Entries) {
+            if (select_current_entry(app)) {
+                app.screen = UiScreen::Detail;
+                app.active_component = 2;
+            }
+            return true;
+        }
+        if (event == ftxui::Event::Character("s") &&
+            app.screen == UiScreen::Entries) {
+            app.query = app.pending_query;
+            app.selected_index = 0;
+            app.selected = nullptr;
+            refresh_entry_labels(app);
+            app.notice = app.query.empty() ? "Busca limpa." : "Busca executada.";
+            return true;
+        }
+        if (event == ftxui::Event::Character("j") &&
+            app.screen == UiScreen::Entries &&
+            !app.entry_labels.empty()) {
+            app.selected_index = std::min(
+                app.selected_index + 1,
+                static_cast<int>(app.entry_labels.size()) - 1
+            );
+            return true;
+        }
+        if (event == ftxui::Event::Character("k") &&
+            app.screen == UiScreen::Entries &&
+            !app.entry_labels.empty()) {
+            app.selected_index = std::max(app.selected_index - 1, 0);
+            return true;
+        }
+        if ((event == ftxui::Event::Special("\x0e") ||
+             event == ftxui::Event::ArrowDownCtrl) &&
+            app.screen == UiScreen::Entries &&
+            !app.entry_labels.empty()) {
+            app.selected_index = std::min(
+                app.selected_index + 1,
+                static_cast<int>(app.entry_labels.size()) - 1
+            );
+            return true;
+        }
+        if ((event == ftxui::Event::Special("\x10") ||
+             event == ftxui::Event::ArrowUpCtrl) &&
+            app.screen == UiScreen::Entries &&
+            !app.entry_labels.empty()) {
+            app.selected_index = std::max(app.selected_index - 1, 0);
+            return true;
+        }
+        if (event == ftxui::Event::Character("q") &&
+            app.screen == UiScreen::Entries) {
+            app.vault.lock();
+            screen.Exit();
             return true;
         }
         return false;

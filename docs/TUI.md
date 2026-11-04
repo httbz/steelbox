@@ -21,6 +21,14 @@ O argumento `--vault` é opcional. Quando omitido, a TUI procura
 - `Shift+Tab`: controle anterior, quando suportado pelo terminal.
 - `Enter` ou `Espaço`: ativa o botão selecionado.
 - `Esc`: volta da visualização para a lista ou sai da lista.
+- `j`/`k`: move a seleção para baixo/acima na lista.
+- `Ctrl+N`/`Ctrl+P`: move a seleção para baixo/acima na lista no estilo Emacs.
+- `v`: visualiza a entrada selecionada.
+- `e`: edita a entrada selecionada.
+- `d`: abre a confirmação de exclusão.
+- `n`: abre o formulário de nova entrada.
+- `s`: executa a busca digitada.
+- `q`: sai da tela de entradas.
 - `Ctrl+C`: interrupção do processo; use os botões ou `Esc` para sair
   normalmente.
 
@@ -59,7 +67,8 @@ mensagem de erro aparece na própria tela.
 
 ### Controles
 
-- **Busca**: filtra por título, usuário, URL, domínio normalizado e tags.
+- **Busca**: recebe o texto da busca; o filtro só é aplicado ao ativar
+  **Buscar** ou pressionar `s`.
 - **Lista**: mostra título, usuário e domínio das entradas filtradas.
 - **Visualizar**: abre a entrada selecionada.
 - **Nova entrada**: abre o formulário de criação.
@@ -94,12 +103,14 @@ Exibe os dados não secretos da entrada:
 - quantidade de tags;
 - notas.
 
-A senha permanece mascarada como `********`.
+A senha permanece mascarada como `********` até o usuário ativar
+**Visualizar senha**.
 
 ### Controles
 
 - **Editar**: abre o formulário de edição.
 - **Excluir**: abre a confirmação de exclusão.
+- **Visualizar senha**: mostra ou oculta a senha na tela.
 - **Voltar**: retorna à lista.
 
 `Esc` também retorna à lista.
@@ -126,11 +137,12 @@ usuário e senha válidos.
 
 - **Gerar senha**: preenche o campo de senha com uma senha criptograficamente
   aleatória.
+- **Visualizar senha**: alterna a exibição da senha digitada ou gerada.
 - **Salvar**: valida a entrada, adiciona-a ao cofre e salva o arquivo.
 - **Cancelar**: abandona o formulário sem modificar o cofre.
 
-Também é possível pressionar `G` no formulário para abrir a tela completa de
-geração de senha.
+O botão **Gerar senha** abre a tela completa de geração de senha. A tecla `g`
+não abre o gerador enquanto o foco estiver em um campo de texto.
 
 ## Tela de edição
 
@@ -142,6 +154,9 @@ Selecione uma entrada e ative **Editar**, ou pressione `E` na tela principal.
 
 Permite alterar os dados da entrada existente. Os campos são preenchidos com
 os valores atuais e a senha começa mascarada.
+
+O botão **Visualizar senha**, ao lado do campo de senha, alterna entre a senha
+mascarada e a senha visível.
 
 ### Salvamento
 
