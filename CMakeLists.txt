@@ -124,7 +124,7 @@ if(STEELBOX_ENABLE_SANITIZERS)
         message(FATAL_ERROR "STEELBOX_ENABLE_SANITIZERS requires Clang or GCC")
     endif()
 
-    foreach(target steelbox_core steelbox steelbox_tests)
+    foreach(target steelbox_core steelbox steelbox_tests steelbox_tui)
         target_compile_options(${target} PRIVATE
             -fsanitize=address,undefined
             -fno-omit-frame-pointer
