@@ -8,6 +8,7 @@ project(steelbox
 enable_testing()
 
 include(FetchContent)
+set(FTXUI_ENABLE_INSTALL OFF CACHE BOOL "Disable FTXUI install rules" FORCE)
 FetchContent_Declare(
     nlohmann_json
     URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
@@ -115,6 +116,38 @@ if(WIN32)
         )
     endforeach()
 endif()
+
+include(GNUInstallDirs)
+
+install(TARGETS steelbox steelbox_tui
+    RUNTIME DESTINATION .
+)
+
+install(FILES
+    README.md
+    DESTINATION .
+)
+
+install(DIRECTORY docs/
+    DESTINATION docs
+)
+
+if(WIN32)
+    install(FILES
+        "$<TARGET_FILE_DIR:steelbox>/libsodium.dll"
+        DESTINATION .
+    )
+endif()
+
+set(CPACK_PACKAGE_NAME "steelbox")
+set(CPACK_PACKAGE_VENDOR "httbz")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Gerenciador de senhas local e portatil")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_FILE_NAME
+    "${CPACK_PACKAGE_NAME}-${PROJECT_VERSION}-${CMAKE_SYSTEM_NAME}-${CMAKE_SYSTEM_PROCESSOR}"
+)
+set(CPACK_GENERATOR "ZIP")
+include(CPack)
 
 option(STEELBOX_ENABLE_SANITIZERS "Enable AddressSanitizer and UBSan" OFF)
 option(STEELBOX_BUILD_FUZZER "Build the parser fuzz target with libFuzzer" OFF)

@@ -2,7 +2,7 @@
 
 Gerenciador de senhas pessoal escrito em C++, com armazenamento 100% local.
 
-> **Status: TUI CRUD em desenvolvimento.** O núcleo, a CLI e as telas principais da TUI estão funcionais. A documentação completa da interface está em [docs/TUI.md](docs/TUI.md); ainda faltam bloqueio por inatividade e revelação temporária na tela de detalhes.
+> **Status: versão inicial em preparação para release.** O núcleo, a CLI e a TUI CRUD estão funcionais. A documentação completa da interface está em [docs/TUI.md](docs/TUI.md).
 
 ## Objetivo
 
@@ -68,7 +68,9 @@ dependência suportada para este build.
 
 **Distribuição**
 
-- [ ] Binários para Windows, Linux e macOS, para uso a partir de um pendrive (para a extensão funcionar, tem que registrar o host em cada computador)
+- [x] Pacote ZIP portátil para Windows x64, gerado pelo CPack e publicado automaticamente para tags `v*`
+- [ ] Binários para Linux e macOS
+- [ ] Extensão de navegador e host Native Messaging (o host precisa ser registrado em cada computador)
 
 ## Estrutura do projeto
 
@@ -90,6 +92,36 @@ cmake --build build
 
 O executável `steelbox` será gerado dentro de `build/`.
 No Windows, a compilação usa linkagem dinâmica. O vcpkg copia `libsodium.dll` para a mesma pasta de `steelbox.exe` durante o build.
+
+## Usar uma release no Windows
+
+Para usuários finais, a forma recomendada é baixar o ZIP da release mais
+recente na página **Releases** do GitHub. Extraia o conteúdo para uma pasta
+local ou para um pendrive e execute `steelbox_tui.exe`. O pacote já inclui
+`libsodium.dll`; não é necessário instalar CMake, compilador, vcpkg ou as
+dependências do projeto.
+
+O cofre pode ser criado ao lado dos executáveis com:
+
+```powershell
+.\steelbox.exe init --vault .\steelbox.vault
+```
+
+Depois, abra a TUI:
+
+```powershell
+.\steelbox_tui.exe --vault .\steelbox.vault
+```
+
+Para criar um pacote localmente:
+
+```powershell
+cmake --install build --prefix dist
+cpack --config build/CPackConfig.cmake -B dist
+```
+
+O ZIP é um pacote portátil, não um instalador do Windows: nenhuma alteração
+é feita no registro e os arquivos podem ser removidos apagando a pasta.
 
 ## TUI disponível
 

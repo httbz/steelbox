@@ -21,8 +21,8 @@ O argumento `--vault` é opcional. Quando omitido, a TUI procura
 - `Shift+Tab`: controle anterior, quando suportado pelo terminal.
 - `Enter` ou `Espaço`: ativa o botão selecionado.
 - `Esc`: volta da visualização para a lista ou sai da lista.
-- `h`/`l`: navegam horizontalmente quando a tela possuir controles nessa
-  direção.
+- `h`, `j`, `k` e `l`: podem ser digitadas normalmente no terminal. `j` e `k`
+  movem a lista somente quando o terminal está vazio.
 - `j`/`k`: movem a seleção para baixo/acima na lista.
 - `Ctrl+N`/`Ctrl+P`: também movem a seleção para baixo/acima, no estilo
   Emacs.
@@ -88,6 +88,9 @@ lock
 quit
 help
 ```
+
+O comando `help` abre uma tela/modal com a lista completa de comandos e
+atalhos. Use **Voltar**, `Esc` ou `Backspace` para retornar.
 
 Pressionar `Space` mostra a paleta de comandos rápidos. Para buscar
 rapidamente, pressione `/` ou `Ctrl+F`, digite o termo e pressione Enter:
