@@ -80,6 +80,9 @@ add_executable(
 )
 target_link_libraries(steelbox PRIVATE steelbox_cli_support)
 target_compile_definitions(steelbox PRIVATE STEELBOX_VERSION="${PROJECT_VERSION}")
+if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(steelbox PRIVATE -municode)
+endif()
 
 add_executable(steelbox_tests
     tests/core_tests.cpp
